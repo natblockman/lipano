@@ -18,12 +18,18 @@
 
     <main class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#" aria-label="lipano หน้าหลัก">
-          <span class="brand-mark" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i>
-          </span>
-          <span>LIPANO</span>
-        </a>
+        <div class="topbar-left">
+          <a class="brand" href="#" aria-label="lipano หน้าหลัก">
+            <span class="brand-mark" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i>
+            </span>
+            <span>LIPANO</span>
+          </a>
+          <button id="helpButton" class="keymap-button" type="button" aria-label="ตั้งค่าปุ่ม Key Map">
+            <span aria-hidden="true">⌨</span>
+            <strong>KEY MAP</strong>
+          </button>
+        </div>
         <div class="status-wrap">
           <span class="status-dot"></span>
           <span id="audioStatus">พร้อมเล่น</span>
@@ -125,7 +131,6 @@
 
         <div class="keyboard-footer">
           <p id="shortcutHint"><kbd>Space</kbd> ค้างเสียง <span></span> ปรับปุ่มเล่นได้ตามถนัด</p>
-          <button id="helpButton" type="button">ตั้งค่าปุ่ม <span>⚙</span></button>
         </div>
       </section>
 
@@ -141,8 +146,8 @@
     <dialog id="helpDialog">
       <button id="closeHelp" class="dialog-close" type="button" aria-label="ปิด">×</button>
       <span class="dialog-kicker">KEY SETTINGS</span>
-      <h2>ตั้งค่าปุ่มเล่น</h2>
-      <p>เลือกช่องที่ต้องการ แล้วกดปุ่มใหม่บนคีย์บอร์ด ค่าจะถูกจดจำอัตโนมัติ</p>
+      <h2>ตั้งค่า Key Map ทั้ง 88 คีย์</h2>
+      <p>กำหนดปุ่มได้ทุกโน้ตตั้งแต่ A0 ถึง C8 ค่าเริ่มต้นเล่นสองมือโดยมือซ้ายเริ่มที่ Q และมือขวาเริ่มที่ V</p>
       <div class="key-settings" id="keySettings"></div>
       <p class="binding-message" id="bindingMessage" aria-live="polite"></p>
       <div class="dialog-actions">

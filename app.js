@@ -1,19 +1,30 @@
 const NOTE_NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+const KEYBOARD_START_MIDI = 21; // A0
+const NOTE_COUNT = 88;
+const TWO_HAND_START_MIDI = 48; // C3
+const TWO_HAND_DEFAULT_KEYS = [
+  "q", "2", "w", "3", "e", "r", "5", "t", "6", "y", "7", "u",
+  "v", "g", "b", "h", "n", "m", "k", ",", "l", ".", ";", "/",
+];
+const DEFAULT_NOTE_BINDINGS = Array(NOTE_COUNT).fill("");
+TWO_HAND_DEFAULT_KEYS.forEach((key, index) => {
+  DEFAULT_NOTE_BINDINGS[TWO_HAND_START_MIDI - KEYBOARD_START_MIDI + index] = key;
+});
+Object.freeze(DEFAULT_NOTE_BINDINGS);
 const DEFAULT_BINDINGS = Object.freeze({
-  notes: ["a", "w", "s", "e", "d", "f", "t", "g", "y", "h", "u", "j", "k", "o", "l", "p"],
+  notes: DEFAULT_NOTE_BINDINGS,
   sustain: " ",
   octaveUp: "ArrowUp",
   octaveDown: "ArrowDown",
-  record: "r",
-  metronome: "m",
+  record: "z",
+  metronome: "x",
 });
-const BINDINGS_STORAGE_KEY = "lipano-bindings-v1";
+const BINDINGS_STORAGE_KEY = "lipano-bindings-v2";
+const PREVIOUS_BINDINGS_STORAGE_KEY = "lipano-bindings-v1";
 const METRONOME_STORAGE_KEY = "lipano-metronome-v1";
 const LEGACY_BINDINGS_STORAGE_KEY = "siam-keys-bindings-v1";
 const LEGACY_METRONOME_STORAGE_KEY = "siam-keys-metronome-v1";
-const KEYBOARD_START_MIDI = 21; // A0
-const MAPPED_START_MIDI = 60; // C4 (Middle C)
-const NOTE_COUNT = 88;
+const SUSTAIN_RELEASE_SECONDS = 2;
 
 const keyboard = document.querySelector("#keyboard");
 const volume = document.querySelector("#volume");
@@ -68,7 +79,6 @@ const beatVisualTimeouts = new Set();
 
 const activeVoices = new Map();
 const heldInputs = new Set();
-const deferredReleases = new Set();
 
 function cloneDefaultBindings() {
   return { ...DEFAULT_BINDINGS, notes: [...DEFAULT_BINDINGS.notes] };
@@ -76,10 +86,11 @@ function cloneDefaultBindings() {
 
 function loadBindings() {
   try {
-    const saved = JSON.parse(localStorage.getItem(BINDINGS_STORAGE_KEY) || localStorage.getItem(LEGACY_BINDINGS_STORAGE_KEY));
+    const saved = JSON.parse(localStorage.getItem(BINDINGS_STORAGE_KEY) || localStorage.getItem(PREVIOUS_BINDINGS_STORAGE_KEY) || localStorage.getItem(LEGACY_BINDINGS_STORAGE_KEY));
     if (
       Array.isArray(saved?.notes) &&
       saved.notes.length === DEFAULT_BINDINGS.notes.length &&
+      saved.notes.every((key) => typeof key === "string") &&
       ["sustain", "octaveUp", "octaveDown", "record"].every((name) => typeof saved[name] === "string")
     ) return { ...cloneDefaultBindings(), ...saved, notes: [...saved.notes] };
   } catch (_error) {
@@ -98,8 +109,15 @@ function normalizeEventKey(event) {
 }
 
 function displayKey(key) {
+  if (!key) return "—";
   const names = { " ": "Space", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
   return names[key] || key.toUpperCase();
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[character]);
 }
 
 function allAssignedKeys() {
@@ -110,7 +128,7 @@ function allAssignedKeys() {
     bindings.octaveDown,
     bindings.record,
     bindings.metronome,
-  ];
+  ].filter(Boolean);
 }
 
 function midiToFrequency(midi) {
@@ -349,7 +367,7 @@ function releaseVoice(inputId, releaseTime = 0.75) {
 function stopNote(baseMidi, inputId = `note-${baseMidi}`, options = {}) {
   heldInputs.delete(inputId);
   if (sustain && !options.ignoreSustain) {
-    deferredReleases.add(inputId);
+    releaseVoice(inputId, SUSTAIN_RELEASE_SECONDS);
   } else {
     releaseVoice(inputId, soundSelect.value === "synth" ? 1.1 : 0.75);
   }
@@ -362,10 +380,6 @@ function stopNote(baseMidi, inputId = `note-${baseMidi}`, options = {}) {
 function setSustain(nextState) {
   sustain = nextState;
   sustainButton.setAttribute("aria-pressed", String(sustain));
-  if (!sustain) {
-    deferredReleases.forEach((inputId) => releaseVoice(inputId, 0.9));
-    deferredReleases.clear();
-  }
 }
 
 function buildKeyboard() {
@@ -381,13 +395,13 @@ function buildKeyboard() {
   whiteNotes.forEach((midi, whiteIndex) => {
     const key = document.createElement("button");
     const details = noteDetails(midi);
-    const keyboardIndex = midi - MAPPED_START_MIDI;
+    const keyboardIndex = midi - KEYBOARD_START_MIDI;
     const mappedKey = bindings.notes[keyboardIndex];
     key.type = "button";
     key.className = "key white";
     key.dataset.midi = midi;
     key.setAttribute("aria-label", `โน้ต ${details.label}`);
-    key.innerHTML = `<span class="key-label">${mappedKey ? `<kbd>${displayKey(mappedKey)}</kbd>` : ""}<span>${details.label}</span></span>`;
+    key.innerHTML = `<span class="key-label">${mappedKey ? `<kbd>${escapeHtml(displayKey(mappedKey))}</kbd>` : ""}<span>${details.label}</span></span>`;
     keyboard.appendChild(key);
   });
 
@@ -395,7 +409,7 @@ function buildKeyboard() {
     const previousWhites = Array.from({ length: midi - KEYBOARD_START_MIDI + 1 }, (_, i) => KEYBOARD_START_MIDI + i)
       .filter((note) => ![1, 3, 6, 8, 10].includes(note % 12)).length;
     const details = noteDetails(midi);
-    const keyboardIndex = midi - MAPPED_START_MIDI;
+    const keyboardIndex = midi - KEYBOARD_START_MIDI;
     const mappedKey = bindings.notes[keyboardIndex];
     const key = document.createElement("button");
     key.type = "button";
@@ -404,7 +418,7 @@ function buildKeyboard() {
     key.setAttribute("aria-label", `โน้ต ${details.label}`);
     key.style.left = `${(previousWhites / whiteNotes.length) * 100}%`;
     key.style.width = `${(0.63 / whiteNotes.length) * 100}%`;
-    key.innerHTML = `<span class="key-label">${mappedKey ? `<kbd>${displayKey(mappedKey)}</kbd>` : ""}<span>${details.label}</span></span>`;
+    key.innerHTML = `<span class="key-label">${mappedKey ? `<kbd>${escapeHtml(displayKey(mappedKey))}</kbd>` : ""}<span>${details.label}</span></span>`;
     keyboard.appendChild(key);
   });
 }
@@ -421,21 +435,26 @@ function centerKeyboardOnMiddleC() {
 
 function baseMidiFromKey(key) {
   const index = bindings.notes.indexOf(key);
-  return index === -1 ? null : MAPPED_START_MIDI + index;
+  return index === -1 ? null : KEYBOARD_START_MIDI + index;
 }
 
 function bindingButton(label, key, type, value) {
-  return `<div class="binding-item"><span>${label}</span><button class="binding-key" type="button" data-binding-type="${type}" data-binding-value="${value}">${displayKey(key)}</button></div>`;
+  const emptyClass = key ? "" : " is-empty";
+  return `<div class="binding-item"><span>${escapeHtml(label)}</span><button class="binding-key${emptyClass}" type="button" data-binding-type="${type}" data-binding-value="${value}">${escapeHtml(displayKey(key))}</button></div>`;
 }
 
 function renderBindingSettings() {
-  const melody = bindings.notes.slice(0, 8).map((key, index) => {
-    return bindingButton(noteDetails(MAPPED_START_MIDI + index).label, key, "note", index);
-  }).join("");
-  const upper = bindings.notes.slice(8).map((key, localIndex) => {
-    const index = localIndex + 8;
-    return bindingButton(noteDetails(MAPPED_START_MIDI + index).label, key, "note", index);
-  }).join("");
+  const noteGroups = new Map();
+  bindings.notes.forEach((key, index) => {
+    const details = noteDetails(KEYBOARD_START_MIDI + index);
+    if (!noteGroups.has(details.octave)) noteGroups.set(details.octave, []);
+    noteGroups.get(details.octave).push(bindingButton(details.label, key, "note", index));
+  });
+  const noteSections = Array.from(noteGroups, ([octave, buttons]) => `
+    <section class="binding-section note-binding-section">
+      <h3>อ็อกเทฟ ${octave}</h3>
+      <div class="binding-grid">${buttons.join("")}</div>
+    </section>`).join("");
   const actions = [
     ["Sustain", bindings.sustain, "sustain"],
     ["อ็อกเทฟ +", bindings.octaveUp, "octaveUp"],
@@ -444,11 +463,12 @@ function renderBindingSettings() {
     ["เมโทรนอม", bindings.metronome, "metronome"],
   ].map(([label, key, name]) => bindingButton(label, key, "action", name)).join("");
 
+  const assignedNotes = bindings.notes.filter(Boolean).length;
   keySettings.innerHTML = `
-    <section class="binding-section"><h3>โน้ต C4 – G4</h3><div class="binding-grid">${melody}</div></section>
-    <section class="binding-section"><h3>โน้ต G♯4 – D♯5</h3><div class="binding-grid">${upper}</div></section>
+    <div class="binding-summary"><strong>${assignedNotes} / ${NOTE_COUNT}</strong><span>โน้ตที่กำหนดปุ่มแล้ว · คลิก — เพื่อเพิ่มปุ่ม</span></div>
+    ${noteSections}
     <section class="binding-section action-bindings"><h3>คำสั่ง</h3><div class="binding-grid">${actions}</div></section>`;
-  shortcutHint.innerHTML = `<kbd>${displayKey(bindings.sustain)}</kbd> ค้างเสียง <span></span> ปรับปุ่มเล่นได้ตามถนัด`;
+  shortcutHint.innerHTML = `<kbd>${escapeHtml(displayKey(bindings.sustain))}</kbd> ค้างเสียง <span></span> ตั้งค่าโน้ตได้ครบ 88 คีย์`;
 }
 
 function cancelRemapping() {
@@ -468,7 +488,7 @@ function beginRemapping(button) {
   };
   currentButton.classList.add("is-waiting");
   currentButton.textContent = "กดปุ่ม…";
-  bindingMessage.textContent = "กดปุ่มใหม่บนคีย์บอร์ด · Esc เพื่อยกเลิก";
+  bindingMessage.textContent = "กดปุ่มใหม่ · Backspace/Delete เพื่อล้าง · Esc เพื่อยกเลิก";
   bindingMessage.classList.remove("is-success");
 }
 
@@ -479,6 +499,18 @@ function applyRemapping(event) {
 
   if (event.key === "Escape") {
     cancelRemapping();
+    return true;
+  }
+
+  if (remappingTarget.type === "note" && ["Backspace", "Delete"].includes(event.key)) {
+    bindings.notes[Number(remappingTarget.value)] = "";
+    saveBindings();
+    remappingTarget = null;
+    keyboard.innerHTML = "";
+    buildKeyboard();
+    renderBindingSettings();
+    bindingMessage.textContent = "ล้างปุ่มของโน้ตแล้ว";
+    bindingMessage.classList.add("is-success");
     return true;
   }
 
@@ -640,7 +672,6 @@ document.addEventListener("keyup", (event) => {
 window.addEventListener("blur", () => {
   heldInputs.forEach((inputId) => releaseVoice(inputId, 0.12));
   heldInputs.clear();
-  deferredReleases.clear();
   setSustain(false);
 });
 
