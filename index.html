@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#17120f" />
+    <meta
+      name="description"
+      content="lipano — เปียโนออนไลน์ที่เล่นได้ด้วยคีย์บอร์ด เมาส์ และหน้าจอสัมผัส"
+    />
+    <title>lipano — เปียโนของคุณ</title>
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="lipano หน้าหลัก">
+          <span class="brand-mark" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <span>LIPANO</span>
+        </a>
+        <div class="status-wrap">
+          <span class="status-dot"></span>
+          <span id="audioStatus">พร้อมเล่น</span>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="eyebrow"><span>♪</span> DIGITAL PIANO</div>
+        <h1>ปล่อยให้นิ้ว<br /><em>เล่าเรื่อง</em></h1>
+        <p>เปียโนเต็มช่วง 88 คีย์ เล่นได้ทันทีด้วยคีย์บอร์ด เมาส์ หรือปลายนิ้ว</p>
+      </section>
+
+      <section class="studio" aria-label="แผงควบคุมเปียโน">
+        <div class="control-strip">
+          <div class="control-group sound-control">
+            <label for="soundSelect">เสียง</label>
+            <div class="select-wrap">
+              <select id="soundSelect">
+                <option value="grand">Grand Piano</option>
+                <option value="warm">Warm Keys</option>
+                <option value="bell">Soft Bell</option>
+                <option value="synth">Analog Dream</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="control-group volume-control">
+            <div class="label-row">
+              <label for="volume">ระดับเสียง</label>
+              <output id="volumeValue" for="volume">72%</output>
+            </div>
+            <input id="volume" type="range" min="0" max="100" value="72" />
+          </div>
+
+          <div class="control-group octave-control">
+            <span class="control-label">อ็อกเทฟ</span>
+            <div class="stepper">
+              <button id="octaveDown" type="button" aria-label="ลดอ็อกเทฟ">−</button>
+              <output id="octaveValue">0</output>
+              <button id="octaveUp" type="button" aria-label="เพิ่มอ็อกเทฟ">+</button>
+            </div>
+          </div>
+
+          <button id="sustainButton" class="sustain-button" type="button" aria-pressed="false">
+            <span class="pedal-icon" aria-hidden="true"></span>
+            <span><small>SUSTAIN</small>ค้างเสียง</span>
+          </button>
+        </div>
+
+        <div class="metronome-strip" aria-label="เมโทรนอม">
+          <button id="metronomeToggle" class="metronome-toggle" type="button" aria-pressed="false">
+            <span class="metronome-icon" aria-hidden="true"><i></i></span>
+            <span><small>METRONOME</small><strong id="metronomeStatus">ปิดอยู่</strong></span>
+          </button>
+          <div class="tempo-control">
+            <div class="label-row">
+              <label for="tempo">ความเร็ว</label>
+              <output id="tempoValue" for="tempo">100 BPM</output>
+            </div>
+            <input id="tempo" type="range" min="40" max="220" value="100" />
+          </div>
+          <div class="meter-control">
+            <label for="timeSignature">จังหวะ</label>
+            <div class="select-wrap">
+              <select id="timeSignature">
+                <option value="2">2 / 4</option>
+                <option value="3">3 / 4</option>
+                <option value="4" selected>4 / 4</option>
+                <option value="6">6 / 8</option>
+              </select>
+            </div>
+          </div>
+          <div class="beat-indicator" id="beatIndicator" aria-label="ตำแหน่งจังหวะ"></div>
+          <button id="tapTempo" class="tap-tempo" type="button"><span>TAP</span> เคาะจังหวะ</button>
+        </div>
+
+        <div class="performance-bar">
+          <div class="now-playing">
+            <span class="note-display" id="noteDisplay">—</span>
+            <span><small>กำลังเล่น</small><strong id="noteName">รอเสียงแรกของคุณ</strong></span>
+          </div>
+          <div class="transport">
+            <span id="recordTimer">00:00</span>
+            <button id="recordButton" class="record-button" type="button">
+              <i></i><span>บันทึก</span>
+            </button>
+            <button id="playButton" class="play-button" type="button" disabled>
+              <span class="play-icon"></span><span>เล่นซ้ำ</span>
+            </button>
+            <button id="clearButton" class="icon-button" type="button" aria-label="ล้างเสียงที่บันทึก" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="keyboard-scroll" id="keyboardScroll">
+          <div class="keyboard" id="keyboard" role="group" aria-label="คีย์เปียโน 88 คีย์ ตั้งแต่ A0 ถึง C8"></div>
+        </div>
+
+        <div class="keyboard-footer">
+          <p id="shortcutHint"><kbd>Space</kbd> ค้างเสียง <span></span> ปรับปุ่มเล่นได้ตามถนัด</p>
+          <button id="helpButton" type="button">ตั้งค่าปุ่ม <span>⚙</span></button>
+        </div>
+      </section>
+
+      <footer>
+        <p>แตะคีย์แรกเพื่อเปิดเสียง</p>
+        <div class="sound-wave" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <p>สร้างเสียงในเบราว์เซอร์ของคุณ</p>
+      </footer>
+    </main>
+
+    <dialog id="helpDialog">
+      <button id="closeHelp" class="dialog-close" type="button" aria-label="ปิด">×</button>
+      <span class="dialog-kicker">KEY SETTINGS</span>
+      <h2>ตั้งค่าปุ่มเล่น</h2>
+      <p>เลือกช่องที่ต้องการ แล้วกดปุ่มใหม่บนคีย์บอร์ด ค่าจะถูกจดจำอัตโนมัติ</p>
+      <div class="key-settings" id="keySettings"></div>
+      <p class="binding-message" id="bindingMessage" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button id="resetBindings" type="button">คืนค่าเริ่มต้น</button>
+        <button id="doneBindings" class="primary-action" type="button">เสร็จแล้ว</button>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>

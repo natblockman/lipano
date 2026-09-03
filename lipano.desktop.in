@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=lipano
+GenericName=Digital Piano
+GenericName[th]=เปียโนดิจิทัล
+Comment=Play a full-range digital piano
+Comment[th]=เล่นเปียโนดิจิทัลเต็มช่วง 88 คีย์
+Exec=@EXEC@
+Icon=lipano
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+Keywords=piano;music;keyboard;metronome;เปียโน;ดนตรี;
+StartupNotify=true
+StartupWMClass=lipano
+Actions=Play;
+
+[Desktop Action Play]
+Name=Open Piano
+Name[th]=เปิดเปียโน
+Exec=@EXEC@
